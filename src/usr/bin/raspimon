@@ -84,10 +84,16 @@ if [ "$_hostname" = "$response_hostname" ];
 then
     log "INFO" "hostname is equal with response"
 else
-    log "WARN" "hostname will be changed from $_hostname to $response_hostname"
-    sed "s/${_hostname}/${response_hostname}/g" "/etc/hosts" > "/etc/hosts.new" && mv "/etc/hosts.new" "/etc/hosts"
-    echo $response_hostname > /etc/hostname
-    hostname -F /etc/hostname
+	log "WARN" "hostname will be changed from $_hostname to $response_hostname"
+	hostname "$response_hostname"
+	if [ $? -eq 0 ]; then
+		sed "s/${_hostname}/${response_hostname}/g" "/etc/hosts" > "/etc/hosts.new" && mv "/etc/hosts.new" "/etc/hosts"
+		echo $response_hostname > /etc/hostname
+		hostname -F /etc/hostname
+	else
+		log "ERROR" "hostname is not valid. Restore previous version"
+		hostname "$_hostname"
+	fi
 fi
 
 exit 0
