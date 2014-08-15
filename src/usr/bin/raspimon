@@ -43,6 +43,8 @@ _ipv4=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe8
 _ipv6=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe80" | grep "inet6" | awk '{print $2}' | cut -f1 -d'/'  `
 # hostname
 _hostname=`hostname `
+# hardware revision
+_revision=`grep 'Revision' /proc/cpuinfo 2> /dev/null | cut -d':' -f2 | tr -d ' ' `
 
 log "INFO" "submit data"
 
@@ -64,7 +66,8 @@ response=`curl -s -X POST -H "Content-type: application/json" $_url -d "
 			\"osVersion\":\"${_os_version}\",
 			\"ipv4\":\"${_ipv4}\",
 			\"ipv6\":\"${_ipv6}\",
-			\"hostname\":\"${_hostname}\"
+			\"hostname\":\"${_hostname}\",
+			\"hardwareRevisionCode\":\"${_revision}\"
 		}
  " 
 ` # response cmd close
