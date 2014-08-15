@@ -2,7 +2,7 @@
 PACKAGENAME="raspimon"
 MAINTAINER="Rapsimon Team <raspimon@holowaty.me>"
 VENDOR="Rapsimon Team <raspimon@holowaty.me>"
-VERSION="0.1-1"
+VERSION="0.1-2"
 URL="https://github.com/bullshit/raspimon"
 LICENSE="GPLv3"
 DESCRIPTION="Raspimon deamon"
