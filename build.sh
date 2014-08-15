@@ -7,7 +7,7 @@ URL="https://github.com/bullshit/raspimon"
 LICENSE="GPLv3"
 DESCRIPTION="Raspimon deamon"
 
-#TODO sed version number in changelog and setup.sh
+sed -i "1s/^.*$/${PACKAGENAME} (${VERSION}) stable; urgency=low/" ./debian/changelog
 
 ROOT=`pwd`
 
