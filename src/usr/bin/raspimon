@@ -59,8 +59,8 @@ else
 	_os_name=`cat /etc/issue 2> /dev/null | head -n 1 | sed 's/[\._-][nl]//g'`
 	_os_version=`cat /etc/debian_version 2> /dev/null  `
 	# ip address
-	_ipv4=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe80" | grep "inet " | awk '{print "\""$2}' | cut -f1 -d'/' | awk '{print $1"\""}' | tr '\n' ',' `
-	_ipv6=`ip addr 2> /dev/null | grep -i "inet6" | grep -v " fe80::" | grep -v " ::1" | awk '{print "\""$2}' | cut -f1 -d'/' | awk '{print $1"\""}' | tr '\n' ','  `
+	_ipv4=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe80" | grep "inet " | awk '{print "\"value\":\""$2}' | cut -f1 -d'/' | awk '{print $1"\""}' | tr '\n' ',' `
+	_ipv6=`ip addr 2> /dev/null | grep -i "inet6" | grep -v " fe80::" | grep -v " ::1" | awk '{print "\"value\":\""$2}' | cut -f1 -d'/' | awk '{print $1"\""}' | tr '\n' ','  `
 	# hostname
 	_hostname=`hostname `
 	# hardware revision
@@ -84,8 +84,8 @@ else
 				\"kernelVersion\":\"${_kernel_version}\",
 				\"os\":\"${_os_name}\",
 				\"osVersion\":\"${_os_version}\",
-				\"ipv4\": [ ${_ipv4%?} ],
-				\"ipv6\": [ ${_ipv6%?} ],
+				\"ipv4\": [{ ${_ipv4%?} }],
+				\"ipv6\": [{ ${_ipv6%?} }],
 				\"hostname\":\"${_hostname}\",
 				\"hardwareRevisionCode\":\"${_revision}\"
 			}
