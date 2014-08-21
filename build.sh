@@ -2,14 +2,15 @@
 PACKAGENAME="raspimon"
 MAINTAINER="Rapsimon Team <raspimon@holowaty.me>"
 VENDOR="Rapsimon Team <raspimon@holowaty.me>"
-VERSION="0.1-2"
+VERSION="0.1-4"
 URL="https://github.com/bullshit/raspimon"
 LICENSE="GPLv3"
 DESCRIPTION="Raspimon deamon"
 
-sed -i "1s/^.*$/${PACKAGENAME} (${VERSION}) stable; urgency=low/" ./debian/changelog
-
 ROOT=`pwd`
+
+sed "1s/^.*$/${PACKAGENAME} (${VERSION}) stable; urgency=low/" ./debian/changelog > /tmp/changelog
+cp /tmp/changelog ./debian/changelog
 
 cd ./src
 fpm -f -s dir -t deb -a all \

@@ -20,7 +20,9 @@ set -e
 case "$1" in
 
   configure)
-  	ln -s /usr/bin/raspimon /etc/cron.hourly/raspimon 2> /dev/null
+    if [ ! -f /etc/cron.hourly/raspimon ]; then
+  	 ln -s /usr/bin/raspimon /etc/cron.hourly/raspimon 2>&1 > /dev/null
+    fi
   ;;
 
   abort-upgrade|abort-remove|abort-deconfigure)

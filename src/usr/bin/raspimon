@@ -8,95 +8,117 @@ log() {  # classic logger
    echo "${prefix} $@"  >> /var/log/raspimon.log #>&2 
 } 
 
-if [ "$UID" -ne 0 ]
-  then echo og "ERROR" "Please run as root"
-  exit 1
-fi
 
-log "INFO" "load configuration"
+while getopts “h:v” OPTION
+do
+     case $OPTION in
+         # h)
+         #     echo "help"
+         #     exit 1
+         #     ;;
+         v)
+             VERSION=1
+             ;;
+     esac
+done
 
-. /etc/raspimon.conf
 
-
-if [ -z "$API_URL" ]; then
-	log "ERROR" "API url is empty"
-	exit 1
-fi
-
-if [ -z "$API_TOKEN" ]; then
-	log "ERROR" "API token is empty"
-	exit 1
-fi
-
-log "INFO" "get system information"
-# serial number
-_serial=`grep 'Serial' /proc/cpuinfo 2> /dev/null | cut -d':' -f2 | tr -d ' ' `
-# date 
-_datetime=`date +"%Y-%m-%dT%H:%M:%S%:z" 2> /dev/null `
-# kernel version
-_kernel_version=`uname -r 2> /dev/null `
-# os detection
-_os_name=`cat /etc/issue 2> /dev/null | head -n 1 | sed 's/[\._-][nl]//g'`
-_os_version=`cat /etc/debian_version 2> /dev/null  `
-# ip address
-_ipv4=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe80" | grep "inet " | awk '{print $2}' | cut -f1 -d'/' `
-_ipv6=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe80" | grep "inet6" | awk '{print $2}' | cut -f1 -d'/'  `
-# hostname
-_hostname=`hostname `
-# hardware revision
-_revision=`grep 'Revision' /proc/cpuinfo 2> /dev/null | cut -d':' -f2 | tr -d ' ' `
-
-log "INFO" "submit data"
-
-_url="${API_URL}/inventory/rpi/update/?token=${API_TOKEN}"
-
-jsonval() {
-	json=$1
-	prop=$2
-    temp=`echo $json | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w $prop`
-    echo ${temp##*|}
-}
-
-response=`curl -s -X POST -H "Content-type: application/json" $_url -d "
-		{
-			\"serialnumber\":\"${_serial}\",
-			\"localTime\":\"${_datetime}\",
-			\"kernelVersion\":\"${_kernel_version}\",
-			\"os\":\"${_os_name}\",
-			\"osVersion\":\"${_os_version}\",
-			\"ipv4\":\"${_ipv4}\",
-			\"ipv6\":\"${_ipv6}\",
-			\"hostname\":\"${_hostname}\",
-			\"hardwareRevisionCode\":\"${_revision}\"
-		}
- " 
-` # response cmd close
-log "TRACE" "Response:\n $response"
-log "INFO" "start parsing response"
-
-response_hostname=$(jsonval "$response" "hostname")
-if [ -z "$response_hostname" ]; then
-	log "ERROR" "response not correct"
-	log "TRACE" "##################################################################"
-	log "TRACE" "$response"
-	log "TRACE" "##################################################################"
-	exit 1
-fi
-
-if [ "$_hostname" = "$response_hostname" ];
-then
-    log "INFO" "hostname is equal with response"
+if [[ $VERSION -eq 1 ]]; then
+	v=$(zcat /usr/share/doc/raspimon/changelog*gz | \
+  head -1 | perl -ne '$_=~ /.*\((.*)\).*/; print $1;')
+	echo "raspimon $v"
 else
-	log "WARN" "hostname will be changed from $_hostname to $response_hostname"
-	hostname "$response_hostname"
-	if [ $? -eq 0 ]; then
-		sed "s/${_hostname}/${response_hostname}/g" "/etc/hosts" > "/etc/hosts.new" && mv "/etc/hosts.new" "/etc/hosts"
-		echo $response_hostname > /etc/hostname
-		hostname -F /etc/hostname
-	else
-		log "ERROR" "hostname is not valid. Restore previous version"
-		hostname "$_hostname"
+	if [ "$UID" -ne 0 ]; then 
+		echo "ERROR" "Please run as root"
+		exit 1
 	fi
-fi
+
+	log "INFO" "load configuration"
+
+	. /etc/raspimon.conf
+
+
+	if [ -z "$API_URL" ]; then
+		log "ERROR" "API url is empty"
+		exit 1
+	fi
+
+	if [ -z "$API_TOKEN" ]; then
+		log "ERROR" "API token is empty"
+		exit 1
+	fi
+
+	log "INFO" "get system information"
+	# serial number
+	_serial=`grep 'Serial' /proc/cpuinfo 2> /dev/null | cut -d':' -f2 | tr -d ' ' `
+	# date 
+	_datetime=`date +"%Y-%m-%dT%H:%M:%S%:z" 2> /dev/null `
+	# kernel version
+	_kernel_version=`uname -r 2> /dev/null `
+	# os detection
+	_os_name=`cat /etc/issue 2> /dev/null | head -n 1 | sed 's/[\._-][nl]//g'`
+	_os_version=`cat /etc/debian_version 2> /dev/null  `
+	# ip address
+	_ipv4=`ip addr 2> /dev/null | grep -v "127.0.0.1" | grep -v "::1" | grep -v "fe80" | grep "inet " | awk '{print "\""$2}' | cut -f1 -d'/' | awk '{print $1"\""}' | tr '\n' ',' `
+	_ipv6=`ip addr 2> /dev/null | grep -i "inet6" | grep -v " fe80::" | grep -v " ::1" | awk '{print "\""$2}' | cut -f1 -d'/' | awk '{print $1"\""}' | tr '\n' ','  `
+	# hostname
+	_hostname=`hostname `
+	# hardware revision
+	_revision=`grep 'Revision' /proc/cpuinfo 2> /dev/null | cut -d':' -f2 | tr -d ' ' `
+
+	log "INFO" "submit data"
+
+	_url="${API_URL}/inventory/rpi/update/?token=${API_TOKEN}"
+
+	jsonval() {
+		json=$1
+		prop=$2
+		temp=`echo $json | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w $prop`
+		echo ${temp##*|}
+	}
+
+	response=`curl -s -X POST -H "Content-type: application/json" $_url -d "
+			{
+				\"serialnumber\":\"${_serial}\",
+				\"localTime\":\"${_datetime}\",
+				\"kernelVersion\":\"${_kernel_version}\",
+				\"os\":\"${_os_name}\",
+				\"osVersion\":\"${_os_version}\",
+				\"ipv4\": [ ${_ipv4%?} ],
+				\"ipv6\": [ ${_ipv6%?} ],
+				\"hostname\":\"${_hostname}\",
+				\"hardwareRevisionCode\":\"${_revision}\"
+			}
+	 " 
+	` # response cmd close
+	log "TRACE" "Response:\n $response"
+	log "INFO" "start parsing response"
+
+	response_hostname=$(jsonval "$response" "hostname")
+	if [ -z "$response_hostname" ]; then
+		log "ERROR" "response not correct"
+		log "TRACE" "##################################################################"
+		log "TRACE" "$response"
+		log "TRACE" "##################################################################"
+		exit 1
+	fi
+
+	if [ "$_hostname" = "$response_hostname" ];
+	then
+		log "INFO" "hostname is equal with response"
+	else
+		log "WARN" "hostname will be changed from $_hostname to $response_hostname"
+		hostname "$response_hostname"
+		if [ $? -eq 0 ]; then
+			sed "s/${_hostname}/${response_hostname}/g" "/etc/hosts" > "/etc/hosts.new" && mv "/etc/hosts.new" "/etc/hosts"
+			echo $response_hostname > /etc/hostname
+			hostname -F /etc/hostname
+		else
+			log "ERROR" "hostname is not valid. Restore previous version"
+			hostname "$_hostname"
+		fi
+	fi
+
+fi # if [ $# -nq 0 ]; then else
 
 exit 0
